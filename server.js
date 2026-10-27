@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// xAI Configuration (using the OpenAI SDK)
+// xAI Configuration
 const openai = new OpenAI({ 
   apiKey: process.env.XAI_API_KEY, 
   baseURL: "https://api.x.ai/v1" 
@@ -16,7 +16,7 @@ const openai = new OpenAI({
 // In-memory store for invoices (Note: resets when server restarts)
 const invoices = new Map();
 
-// 1. Parse Chat with xAI (Grok)
+// 1. Parse Chat with xAI (Grok) for Full Invoices
 app.post('/api/parse', async (req, res) => {
   try {
     const { chat } = req.body;
@@ -25,7 +25,7 @@ app.post('/api/parse', async (req, res) => {
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'grok-3', // xAI model name
+      model: 'grok-3',
       messages: [
         {
           role: 'system',
@@ -51,7 +51,6 @@ Rules:
       temperature: 0.2
     });
 
-    // Clean potential markdown backticks from Grok's response
     const rawContent = completion.choices[0].message.content;
     const cleanContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanContent);
@@ -74,14 +73,63 @@ Rules:
   }
 });
 
-// 2. Get Invoice Data (API)
-app.get('/api/invoice/:id', (req, res) => {
-  const invoice = invoices.get(req.params.id);
-  if (!invoice) return res.status(404).json({ error: 'Not found' });
-  res.json(invoice);
+// 2. Quick-Pay Generator (Scope Creep Tool)
+app.post('/api/quickpay', async (req, res) => {
+  try {
+    const { task, amount, clientMessage } = req.body;
+    
+    if (!task || !amount) {
+      return res.status(400).json({ error: 'Task and amount are required.' });
+    }
+
+    // Generate the polite message using xAI
+    const completion = await openai.chat.completions.create({
+      model: 'grok-3',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert freelancer. Write a very short, polite, 2-sentence message to a client. 
+          The client recently asked for an out-of-scope task: "${clientMessage || 'extra work'}".
+          Tell them you are happy to do the extra task ("${task}") and provide the payment link below so you can get started immediately.`
+        }
+      ],
+      temperature: 0.7
+    });
+
+    const politeMessage = completion.choices[0].message.content;
+
+    // Generate Paystack Link
+    const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: 'client@example.com',
+        amount: Math.round(amount * 100),
+        currency: 'ZAR',
+        callback_url: `${process.env.BASE_URL}/success.html`,
+        metadata: { type: 'quickpay', task }
+      })
+    });
+
+    const paystackData = await paystackResponse.json();
+    
+    if (!paystackData.status) throw new Error('Paystack initialization failed');
+
+    res.json({ 
+      politeMessage: politeMessage,
+      paymentLink: paystackData.data.authorization_url 
+    });
+
+  } catch (err) {
+    console.error('QuickPay error:', err);
+    res.status(500).json({ error: 'Failed to create quick link' });
+  }
 });
 
-// 3. Create Paystack Payment Link
+// 3. Create Paystack Payment Link (For Full Invoices)
 app.post('/api/invoice/:id/payment-link', async (req, res) => {
   try {
     const invoice = invoices.get(req.params.id);
@@ -97,21 +145,15 @@ app.post('/api/invoice/:id/payment-link', async (req, res) => {
       },
       body: JSON.stringify({
         email: customerEmail,
-        amount: Math.round(invoice.subtotal * 100), // Amount in cents
+        amount: Math.round(invoice.subtotal * 100),
         currency: 'ZAR',
         callback_url: `${process.env.BASE_URL}/success.html?id=${invoice.invoiceId}`,
-        metadata: {
-          invoiceId: invoice.invoiceId,
-          clientName: invoice.client.name
-        }
+        metadata: { invoiceId: invoice.invoiceId, clientName: invoice.client.name }
       })
     });
 
     const paystackData = await paystackResponse.json();
-
-    if (!paystackData.status) {
-      throw new Error(paystackData.message || 'Paystack initialization failed');
-    }
+    if (!paystackData.status) throw new Error(paystackData.message || 'Paystack failed');
 
     invoice.paymentLink = paystackData.data.authorization_url;
     invoice.status = 'sent';
@@ -129,7 +171,6 @@ app.get('/invoice/:id', (req, res) => {
   const inv = invoices.get(req.params.id);
   if (!inv) return res.status(404).send('Invoice not found');
 
-  // Grab business details from URL parameters (sent from frontend)
   const bizName = req.query.name || 'Your Business';
   const bizLogo = req.query.logo || '';
   const bizEmail = req.query.email || '';
@@ -184,11 +225,9 @@ app.get('/invoice/:id', (req, res) => {
   </body></html>`);
 });
 
-// Helper function to prevent XSS
 function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// 5. Start the Server (Updated for Cloud Hosting)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
