@@ -3,45 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Invoice from Chat</title>
+  <title>Freelancer Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main>
     <header>
-      <h1>🧾 Invoice from Chat</h1>
-      <p>Paste a client conversation. Get a payable invoice in 30 seconds.</p>
+      <div class="logo">⚡ Freelancer <span>OS</span></div>
+      <p>Draft invoices and catch scope creep in seconds.</p>
+      
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('invoice', event)">Full Invoice</button>
+        <button class="tab-btn" onclick="switchTab('quickpay', event)">Quick-Add Payment</button>
+      </div>
     </header>
 
-    <!-- NEW: Business Settings -->
-    <div class="settings-box">
-      <h3>Your Business Details</h3>
-      <div class="settings-grid">
-        <input type="text" id="biz-name" placeholder="Your Business Name" oninput="saveSettings()">
-        <input type="text" id="biz-email" placeholder="Your Email (Optional)" oninput="saveSettings()">
-        <input type="text" id="biz-logo" placeholder="Logo URL (Optional)" oninput="saveSettings()">
+    <!-- TAB 1: INVOICE -->
+    <section id="invoice-tab" class="tab-content" style="display: block;">
+      <div class="card">
+        <h3>1. Your Business Details</h3>
+        <div class="grid-3">
+          <input type="text" id="biz-name" placeholder="Business Name" oninput="saveSettings()">
+          <input type="text" id="biz-email" placeholder="Email (Optional)" oninput="saveSettings()">
+          <input type="text" id="biz-logo" placeholder="Logo URL (Optional)" oninput="saveSettings()">
+        </div>
       </div>
-    </div>
 
-    <section id="input-section">
-      <textarea id="chat" placeholder="Paste your WhatsApp, Slack, or email conversation here...
-
+      <div class="card">
+        <h3>2. Paste Client Chat</h3>
+        <textarea id="chat" placeholder="Paste your WhatsApp or Email thread here...
+        
 Example:
 Client: Hey, I need the landing page redesign by Friday.
 Me: Sure — R450 for design, R150 for copy.
 Client: Deal. Send the invoice to john@acme.com"></textarea>
-      <button id="generate-btn">Generate Invoice</button>
-      <div id="error" class="error"></div>
+        <button id="generate-btn" class="primary-btn">Generate Full Invoice</button>
+        <div id="error" class="error"></div>
+      </div>
+
+      <section id="result-section" style="display:none">
+        <div class="card">
+          <h2>Invoice Preview</h2>
+          <div id="invoice-preview"></div>
+          <div class="actions">
+            <button id="create-link-btn" class="primary-btn">Create Payment Link</button>
+            <a id="view-invoice-btn" target="_blank" class="secondary-btn">View Printable Invoice →</a>
+          </div>
+          <div id="payment-result"></div>
+        </div>
+      </section>
     </section>
 
-    <section id="result-section" style="display:none">
-      <h2>Invoice Preview</h2>
-      <div id="invoice-preview"></div>
-      <div class="actions">
-        <button id="create-link-btn">Create Payment Link</button>
-        <a id="view-invoice-btn" target="_blank">View Invoice Page →</a>
+    <!-- TAB 2: QUICK PAY -->
+    <section id="quickpay-tab" class="tab-content" style="display: none;">
+      <div class="card highlight-card">
+        <h3>Stop Working for Free</h3>
+        <p class="subtitle">Client asked for a "quick tweak"? Charge for it instantly without the awkward conversation.</p>
+        
+        <div class="grid-2">
+          <input type="text" id="qp-task" placeholder="Task (e.g., Logo adjustment)">
+          <input type="number" id="qp-amount" placeholder="Amount (ZAR)">
+        </div>
+        <input type="text" id="qp-message" placeholder="Paste what the client said here (optional)" style="margin-top: 10px;">
+        
+        <button id="qp-generate-btn" class="primary-btn" style="background: #ff4757; margin-top: 15px;">Generate Quick-Pay Link</button>
+        <div id="qp-error" class="error"></div>
       </div>
-      <div id="payment-result"></div>
+
+      <div id="qp-result" class="card" style="display: none;">
+        <h3>Ready to send!</h3>
+        <textarea id="qp-output-msg" readonly style="height: 100px; margin-bottom: 15px;"></textarea>
+        <div class="actions">
+          <a id="qp-payment-link" href="#" target="_blank" class="primary-btn">Open Payment Link</a>
+          <button onclick="copyQuickPayMessage()" class="secondary-btn">Copy Message & Link</button>
+        </div>
+      </div>
     </section>
   </main>
   <script src="app.js"></script>
