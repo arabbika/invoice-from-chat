@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invoice from Chat</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>🧾 Invoice from Chat</h1>
+      <p>Paste a client conversation. Get a payable invoice in 30 seconds.</p>
+    </header>
+
+    <!-- NEW: Business Settings -->
+    <div class="settings-box">
+      <h3>Your Business Details</h3>
+      <div class="settings-grid">
+        <input type="text" id="biz-name" placeholder="Your Business Name" oninput="saveSettings()">
+        <input type="text" id="biz-email" placeholder="Your Email (Optional)" oninput="saveSettings()">
+        <input type="text" id="biz-logo" placeholder="Logo URL (Optional)" oninput="saveSettings()">
+      </div>
+    </div>
+
+    <section id="input-section">
+      <textarea id="chat" placeholder="Paste your WhatsApp, Slack, or email conversation here...
+
+Example:
+Client: Hey, I need the landing page redesign by Friday.
+Me: Sure — R450 for design, R150 for copy.
+Client: Deal. Send the invoice to john@acme.com"></textarea>
+      <button id="generate-btn">Generate Invoice</button>
+      <div id="error" class="error"></div>
+    </section>
+
+    <section id="result-section" style="display:none">
+      <h2>Invoice Preview</h2>
+      <div id="invoice-preview"></div>
+      <div class="actions">
+        <button id="create-link-btn">Create Payment Link</button>
+        <a id="view-invoice-btn" target="_blank">View Invoice Page →</a>
+      </div>
+      <div id="payment-result"></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
