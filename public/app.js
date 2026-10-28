@@ -1,5 +1,6 @@
 let currentInvoiceId = null;
 
+// Load settings on page load
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('biz-name').value = localStorage.getItem('bizName') || '';
   document.getElementById('biz-email').value = localStorage.getItem('bizEmail') || '';
@@ -7,6 +8,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bank-details').value = localStorage.getItem('bankDetails') || '';
 });
 
+// Save settings as user types
 function saveSettings() {
   localStorage.setItem('bizName', document.getElementById('biz-name').value);
   localStorage.setItem('bizEmail', document.getElementById('biz-email').value);
@@ -14,20 +16,27 @@ function saveSettings() {
   localStorage.setItem('bankDetails', document.getElementById('bank-details').value);
 }
 
+// Load sample chat
 function loadSample() {
   document.getElementById('chat').value = `Client: Hey! I need a landing page redesign and a new logo by Friday.
 Me: Sure — R500 for the landing page and R200 for the logo.
 Client: Deal. Send the invoice to john@acme.com`;
 }
 
+// 1. Parse Chat with AI
 document.getElementById('generate-btn').addEventListener('click', async () => {
   const chat = document.getElementById('chat').value.trim();
   const errorEl = document.getElementById('error');
   errorEl.textContent = '';
-  if (chat.length < 20) { errorEl.textContent = 'Paste a longer conversation.'; return; }
+  
+  if (chat.length < 20) { 
+    errorEl.textContent = 'Paste a longer conversation.'; 
+    return; 
+  }
 
   const btn = document.getElementById('generate-btn');
-  btn.disabled = true; btn.textContent = 'AI is reading...';
+  btn.disabled = true; 
+  btn.textContent = 'AI is reading...';
 
   try {
     const res = await fetch('/api/parse', {
@@ -35,6 +44,7 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat })
     });
+    
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to parse');
 
@@ -43,38 +53,46 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     
     document.getElementById('input-section').style.display = 'none';
     document.getElementById('result-section').style.display = 'block';
+    
   } catch (err) {
     errorEl.textContent = err.message;
   } finally {
-    btn.disabled = false; btn.textContent = 'Generate Invoice';
+    btn.disabled = false; 
+    btn.textContent = 'Generate Invoice';
   }
 });
 
+// 2. Populate the Editable Preview
 function populateEditablePreview(inv) {
   document.getElementById('edit-client-name').value = inv.client_name || '';
   document.getElementById('edit-client-email').value = inv.client_email !== 'no-email@example.com' ? inv.client_email : '';
   
   const container = document.getElementById('edit-items-container');
   container.innerHTML = '';
-  inv.items.forEach((item) => addItem(item.description, item.quantity, item.rate));
+  
+  inv.items.forEach((item) => {
+    addItem(item.description, item.quantity, item.rate);
+  });
 
   updateTotal();
 }
 
+// 3. Add a Line Item
 function addItem(desc = '', qty = 1, rate = 0) {
   const container = document.getElementById('edit-items-container');
   const row = document.createElement('div');
   row.className = 'item-row';
-  row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; margin-bottom: 12px;';
+  
   row.innerHTML = `
-    <input type="text" class="item-desc" placeholder="Description" value="${escapeHTML(desc)}" style="padding:10px; border:1px solid #ddd; border-radius:8px;">
-    <input type="number" class="item-qty" placeholder="Qty" value="${qty}" min="1" oninput="updateTotal()" style="padding:10px; border:1px solid #ddd; border-radius:8px;">
-    <input type="number" class="item-rate" placeholder="Rate" value="${rate}" min="0" oninput="updateTotal()" style="padding:10px; border:1px solid #ddd; border-radius:8px;">
-    <button onclick="this.parentElement.remove(); updateTotal();" style="background: #fee2e2; color: #dc2626; padding: 0 12px; margin: 0; height: 100%;">×</button>
+    <input type="text" class="item-desc" placeholder="Description" value="${escapeHTML(desc)}">
+    <input type="number" class="item-qty" placeholder="Qty" value="${qty}" min="1" oninput="updateTotal()">
+    <input type="number" class="item-rate" placeholder="Rate" value="${rate}" min="0" oninput="updateTotal()">
+    <button onclick="this.parentElement.remove(); updateTotal();" class="delete-btn">×</button>
   `;
   container.appendChild(row);
 }
 
+// 4. Update Math (Subtotal & VAT)
 function updateTotal() {
   let subtotal = 0;
   document.querySelectorAll('.item-row').forEach(row => {
@@ -91,7 +109,7 @@ function updateTotal() {
   document.getElementById('edit-total').textContent = total.toFixed(2);
   
   if (vatPercent > 0) {
-    document.getElementById('vat-display').style.display = 'block';
+    document.getElementById('vat-display').style.display = 'flex';
     document.getElementById('edit-vat-amount').textContent = vatAmount.toFixed(2);
   } else {
     document.getElementById('vat-display').style.display = 'none';
@@ -100,6 +118,7 @@ function updateTotal() {
 
 document.getElementById('edit-vat').addEventListener('change', updateTotal);
 
+// 5. Save and Create Payment Link
 document.getElementById('save-and-link-btn').addEventListener('click', async () => {
   if (!currentInvoiceId) return;
 
@@ -134,10 +153,10 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
   };
 
   const btn = document.getElementById('save-and-link-btn');
-  btn.disabled = true; btn.textContent = 'Saving & creating link...';
+  btn.disabled = true; 
+  btn.textContent = 'Saving & creating link...';
 
   try {
-    // 1. Update the invoice
     const updateRes = await fetch(`/api/invoice/${currentInvoiceId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -145,7 +164,6 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
     });
     if (!updateRes.ok) throw new Error('Failed to save changes');
 
-    // 2. Create the link
     const linkRes = await fetch(`/api/invoice/${currentInvoiceId}/payment-link`, { method: 'POST' });
     const linkData = await linkRes.json();
     if (!linkRes.ok) throw new Error(linkData.error);
@@ -153,9 +171,9 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
     document.getElementById('payment-result').innerHTML = `
       <div class="success-box">
         ✅ Invoice saved and payment link ready!
-        <div style="display:flex; gap:10px; margin-top: 12px;">
-          <a href="${linkData.paymentLink}" target="_blank" class="btn-primary" style="text-decoration:none; padding: 10px 16px; text-align:center; background:#635bff; color:white; border-radius:8px; font-size:14px;">Pay Link</a>
-          <button onclick="sendWhatsApp('${linkData.paymentLink}')" style="background:#25D366; color:white; padding: 10px 16px; font-size:14px;">Send on WhatsApp</button>
+        <div class="action-buttons">
+          <a href="${linkData.paymentLink}" target="_blank" class="btn-primary" style="padding: 10px 16px; font-size: 14px;">Pay Link</a>
+          <button onclick="sendWhatsApp('${linkData.paymentLink}')" class="btn-whatsapp">Send on WhatsApp</button>
         </div>
       </div>`;
       
@@ -164,10 +182,12 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
   } catch (err) {
     alert(err.message);
   } finally {
-    btn.disabled = false; btn.textContent = 'Save & Create Payment Link';
+    btn.disabled = false; 
+    btn.textContent = 'Save & Create Payment Link';
   }
 });
 
+// 6. WhatsApp Share
 function sendWhatsApp(link) {
   const bizName = document.getElementById('biz-name').value || 'your business';
   const clientName = document.getElementById('edit-client-name').value;
