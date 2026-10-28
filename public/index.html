@@ -3,58 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Invoice from Chat | Arabbika</title>
+  <title>Arabbika Invoices</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main>
     <header>
-      <h1>Arabbika Invoices</h1>
-      <p>Paste a client conversation. Get a payable invoice in 30 seconds.</p>
+      <h1>⚡ Arabbika Invoices</h1>
+      <p>Paste a conversation. Get a payable invoice in 30 seconds.</p>
     </header>
 
     <div class="settings-box">
-      <h3>Your Business Details</h3>
+      <h3>⚙️ Business Settings (Saved Locally)</h3>
       <div class="settings-grid">
         <input type="text" id="biz-name" placeholder="Business Name" oninput="saveSettings()">
-        <input type="text" id="biz-email" placeholder="Business Email" oninput="saveSettings()">
+        <input type="email" id="biz-email" placeholder="Business Email" oninput="saveSettings()">
         <input type="text" id="biz-logo" placeholder="Logo URL (Optional)" oninput="saveSettings()">
+        <input type="text" id="bank-details" placeholder="Bank Details (e.g., FNB, Acc: 123, Branch: 456)" oninput="saveSettings()">
       </div>
     </div>
 
     <section id="input-section">
       <textarea id="chat" placeholder="Paste your WhatsApp, Slack, or email conversation here..."></textarea>
-      <button id="generate-btn">Generate Invoice</button>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+        <button onclick="loadSample()" style="background: transparent; color: #635bff; border: 1px solid #635bff; font-size: 14px; padding: 8px 16px;">✨ Try Sample Chat</button>
+        <button id="generate-btn" style="margin: 0;">Generate Invoice</button>
+      </div>
       <div id="error" class="error"></div>
     </section>
 
-    <!-- Editable Preview Section -->
     <section id="result-section" style="display:none">
       <h2>Review & Send</h2>
-      <p style="font-size: 14px; color: #666; margin-bottom: 16px;">AI can make mistakes. Please verify the details before sending.</p>
       
-      <div class="invoice-card">
-        <div class="input-group">
-          <label>Client Name</label>
-          <input type="text" id="edit-client-name">
+      <div class="invoice-card" style="background: white; padding: 24px; border-radius: 16px; margin-bottom: 20px;">
+        <div class="settings-grid">
+          <div>
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">Client Name</label>
+            <input type="text" id="edit-client-name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">Client Email</label>
+            <input type="email" id="edit-client-email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+          </div>
         </div>
-        <div class="input-group">
-          <label>Client Email</label>
-          <input type="email" id="edit-client-email" required placeholder="Required for payment link">
+
+        <div class="settings-grid" style="margin-top: 16px;">
+          <div>
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">Due in (Days)</label>
+            <input type="number" id="edit-due-days" value="14" min="0" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">Add VAT?</label>
+            <select id="edit-vat" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+              <option value="0">No VAT</option>
+              <option value="15">Add 15% VAT</option>
+            </select>
+          </div>
         </div>
         
-        <h3 style="margin-top: 20px; font-size: 14px;">Line Items</h3>
+        <h3 style="margin: 24px 0 12px; font-size: 16px;">Line Items</h3>
         <div id="edit-items-container"></div>
-        <button onclick="addItem()" style="background: transparent; color: #635bff; border: 1px solid #635bff; padding: 8px; font-size: 12px;">+ Add Item</button>
+        <button onclick="addItem()" style="background: transparent; color: #635bff; border: 1px solid #635bff; padding: 8px 16px; font-size: 13px;">+ Add Item</button>
 
-        <div style="margin-top: 20px; text-align: right;">
-          <strong>Total: <span id="edit-total">0.00</span> ZAR</strong>
+        <div style="margin-top: 24px; text-align: right; border-top: 1px solid #eee; padding-top: 16px;">
+          <div style="color: #666; font-size: 14px; margin-bottom: 4px;">Subtotal: R<span id="edit-subtotal">0.00</span></div>
+          <div id="vat-display" style="color: #666; font-size: 14px; margin-bottom: 8px; display: none;">VAT (15%): R<span id="edit-vat-amount">0.00</span></div>
+          <div style="font-size: 24px; font-weight: 800; color: #1a1a1a;">Total: R<span id="edit-total">0.00</span></div>
         </div>
       </div>
 
       <div class="actions">
         <button id="save-and-link-btn">Save & Create Payment Link</button>
-        <a id="view-invoice-btn" target="_blank">View Public Invoice →</a>
+        <a id="view-invoice-btn" target="_blank" style="margin-left: 16px; color: #635bff; font-weight: 600;">View Public Invoice →</a>
       </div>
       <div id="payment-result"></div>
     </section>
