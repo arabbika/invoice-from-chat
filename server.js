@@ -34,7 +34,13 @@ Return ONLY valid JSON matching this exact structure:
   "items": [{ "description": "string", "quantity": number, "rate": number }],
   "currency": "ZAR",
   "notes": "string"
-}`
+}
+Rules:
+- If email not found, use null.
+- If quantity not specified, use 1.
+- Rate must be a plain number (no currency symbols, no commas).
+- If the conversation mentions a total but no line items, create one item named after the work described.
+- Default currency is ZAR.`
         },
         { role: 'user', content: `Extract invoice details:\n\n${chat}` }
       ],
@@ -42,22 +48,31 @@ Return ONLY valid JSON matching this exact structure:
       temperature: 0.2
     });
 
-    const parsed = JSON.parse(completion.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim());
+    const rawContent = completion.choices[0].message.content;
+    const cleanContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanContent);
+
     const subtotal = parsed.items.reduce((s, i) => s + i.quantity * i.rate, 0);
 
     // Generate Sequential Invoice Number (e.g., INV-001)
-    const { count } = await supabase.from('invoices').select('*', { count: 'exact', head: true });
-    const invoice_number = `INV-${String((count || 0) + 1).padStart(3, '0')}`;
+    let invoice_number = 'INV-001';
+    try {
+      const { count } = await supabase.from('invoices').select('*', { count: 'exact', head: true });
+      invoice_number = `INV-${String((count || 0) + 1).padStart(3, '0')}`;
+    } catch (e) {
+      console.log("Could not fetch count, defaulting to INV-001");
+    }
 
+    // Insert into Database with safe fallbacks
     const { data, error } = await supabase
       .from('invoices')
       .insert([{
         invoice_number,
-        client_name: parsed.client.name,
-        client_email: parsed.client.email || 'no-email@example.com',
+        client_name: parsed.client?.name || 'Unknown Client', 
+        client_email: parsed.client?.email || 'no-email@example.com',
         items: parsed.items,
         subtotal: subtotal,
-        currency: parsed.currency,
+        currency: parsed.currency || 'ZAR',
         status: 'draft'
       }]).select().single();
 
@@ -93,6 +108,7 @@ app.put('/api/invoice/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (err) {
+    console.error('Update error:', err);
     res.status(500).json({ error: 'Failed to update invoice.' });
   }
 });
@@ -127,6 +143,7 @@ app.post('/api/invoice/:id/payment-link', async (req, res) => {
 
     res.json({ paymentLink: paystackData.data.authorization_url });
   } catch (err) {
+    console.error('Paystack error:', err);
     res.status(500).json({ error: 'Failed to create payment link' });
   }
 });
@@ -143,6 +160,7 @@ app.post('/api/webhook', async (req, res) => {
     }
     res.sendStatus(200);
   } catch (err) {
+    console.error('Webhook error:', err);
     res.sendStatus(500);
   }
 });
@@ -158,53 +176,76 @@ app.get('/api/view/:id', async (req, res) => {
 
   const rows = inv.items.map(i => `
     <tr>
-      <td>${escapeHTML(i.description)}</td>
+      <td style="font-weight: 500;">${escapeHTML(i.description)}</td>
       <td class="num">${i.quantity}</td>
-      <td class="num">${i.rate.toFixed(2)}</td>
-      <td class="num">${(i.quantity * i.rate).toFixed(2)}</td>
+      <td class="num">R${i.rate.toFixed(2)}</td>
+      <td class="num" style="font-weight: 600;">R${(i.quantity * i.rate).toFixed(2)}</td>
     </tr>`).join('');
 
   res.send(`<!DOCTYPE html><html><head><meta charset="utf-8">
-  <title>Invoice ${inv.invoice_number}</title>
+  <title>Invoice ${inv.invoice_number || ''} | ${escapeHTML(inv.business_name || 'Arabbika')}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body{font-family:-apple-system,sans-serif;background:#f7f7f9;margin:0;padding:40px 20px;color:#1a1a1a}
-    .container{max-width:700px;margin:0 auto;background:white;padding:40px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.05)}
-    .header{display:flex;justify-content:space-between;align-items:start;margin-bottom:40px}
-    h1{margin:0;font-size:28px;color:#635bff}.meta{text-align:right;color:#666;font-size:14px}
-    .biz-info{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-    .biz-logo{width:50px;height:50px;object-fit:contain;border-radius:8px}
-    .biz-name{font-size:20px;font-weight:bold}
-    table{width:100%;border-collapse:collapse;margin:20px 0}
-    th{text-align:left;padding:12px 8px;border-bottom:2px solid #eee;font-size:12px;color:#888;text-transform:uppercase}
-    td{padding:16px 8px;border-bottom:1px solid #eee;font-size:15px}.num{text-align:right}
-    .totals{margin-top:20px;text-align:right;line-height:1.8}
-    .total-row{font-size:24px;font-weight:800;color:#1a1a1a}
-    .pay-btn{display:block;text-align:center;background:#635bff;color:white;padding:16px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:30px;font-size:16px}
-    .paid-stamp{color: #16a34a; border: 3px solid #16a34a; padding: 10px 20px; border-radius: 8px; font-weight: 800; display: inline-block; margin-top: 30px; transform: rotate(-5deg); font-size: 24px;}
-    .bank-details{margin-top:30px;padding:20px;background:#f8f9fa;border-radius:12px;font-size:14px;color:#555;border:1px dashed #ccc}
-    @media print { body{background:white;padding:0} .container{box-shadow:none;padding:0} .pay-btn{display:none} }
+    body { font-family: 'Inter', sans-serif; background: #f4f5f7; margin: 0; padding: 40px 20px; color: #1a1a1a; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 50px; }
+    .biz-name { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin: 0; }
+    .biz-email { color: #6b7280; font-size: 14px; margin-top: 4px; }
+    .meta { text-align: right; }
+    .meta h1 { font-size: 32px; font-weight: 800; color: #635bff; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
+    .meta p { margin: 4px 0; color: #6b7280; font-size: 14px; }
+    .meta strong { color: #1a1a1a; }
+
+    .bill-to { margin-bottom: 40px; }
+    .label { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+    .client-name { font-size: 18px; font-weight: 600; }
+    .client-email { color: #6b7280; font-size: 14px; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+    th { text-align: left; padding: 12px 16px; background: #f9fafb; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 16px; border-bottom: 1px solid #e5e7eb; font-size: 15px; }
+    .num { text-align: right; }
+    
+    .totals { width: 300px; margin-left: auto; }
+    .totals-row { display: flex; justify-content: space-between; padding: 8px 0; color: #6b7280; font-size: 15px; }
+    .totals-row.final { border-top: 2px solid #1a1a1a; margin-top: 12px; padding-top: 16px; font-size: 24px; font-weight: 800; color: #1a1a1a; }
+
+    .payment-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .bank-details { font-size: 13px; color: #6b7280; background: #f9fafb; padding: 20px; border-radius: 12px; max-width: 400px; line-height: 1.6; }
+    
+    .pay-btn { display: block; text-align: center; background: #635bff; color: white; padding: 18px 40px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 18px; transition: background 0.2s; }
+    .pay-btn:hover { background: #4f46e5; }
+    
+    .paid-stamp { color: #16a34a; border: 3px solid #16a34a; padding: 12px 24px; border-radius: 12px; font-weight: 800; display: inline-block; transform: rotate(-5deg); font-size: 28px; letter-spacing: 2px; }
+    .paid-container { text-align: center; margin-top: 40px; }
+
+    @media print { 
+      body { background: white; padding: 0; } 
+      .container { box-shadow: none; padding: 0; } 
+      .pay-btn, .payment-section { display: none; } 
+    }
   </style></head><body>
     <div class="container">
+      
       <div class="header">
         <div>
-          <div class="biz-info">
-            ${inv.business_logo ? `<img src="${escapeHTML(inv.business_logo)}" class="biz-logo">` : ''}
-            <div class="biz-name">${escapeHTML(inv.business_name || 'Your Business')}</div>
-          </div>
-          ${inv.business_email ? `<div style="color:#666;font-size:14px">${escapeHTML(inv.business_email)}</div>` : ''}
+          ${inv.business_logo ? `<img src="${escapeHTML(inv.business_logo)}" style="height: 60px; margin-bottom: 16px; display: block;">` : ''}
+          <h1 class="biz-name">${escapeHTML(inv.business_name || 'Your Business')}</h1>
+          <div class="biz-email">${escapeHTML(inv.business_email || '')}</div>
         </div>
         <div class="meta">
-          <h1>INVOICE</h1>
-          <div><strong>#${inv.invoice_number || 'DRAFT'}</strong></div>
-          <div>Date: ${new Date(inv.created_at).toLocaleDateString()}</div>
-          <div>Due: ${dueDate}</div>
+          <h1>Invoice</h1>
+          <p><strong>#${inv.invoice_number || 'DRAFT'}</strong></p>
+          <p>Issued: ${new Date(inv.created_at).toLocaleDateString()}</p>
+          <p>Due: <strong>${dueDate}</strong></p>
         </div>
       </div>
-      
-      <div style="margin-bottom:30px">
-        <div style="font-size:12px;color:#888;text-transform:uppercase;font-weight:bold;margin-bottom:4px">Bill To</div>
-        <div style="font-weight:600;font-size:16px">${escapeHTML(inv.client_name)}</div>
-        <div style="color:#666;font-size:14px">${escapeHTML(inv.client_email)}</div>
+
+      <div class="bill-to">
+        <span class="label">Billed To</span>
+        <div class="client-name">${escapeHTML(inv.client_name)}</div>
+        <div class="client-email">${escapeHTML(inv.client_email)}</div>
       </div>
 
       <table>
@@ -213,22 +254,30 @@ app.get('/api/view/:id', async (req, res) => {
       </table>
       
       <div class="totals">
-        <div>Subtotal: R${inv.subtotal.toFixed(2)}</div>
-        ${vat > 0 ? `<div>VAT (15%): R${vat.toFixed(2)}</div>` : ''}
-        <div class="total-row">Total: ${inv.currency} ${total.toFixed(2)}</div>
+        <div class="totals-row"><span>Subtotal</span> <span>R${inv.subtotal.toFixed(2)}</span></div>
+        ${vat > 0 ? `<div class="totals-row"><span>VAT (15%)</span> <span>R${vat.toFixed(2)}</span></div>` : ''}
+        <div class="totals-row final"><span>Total</span> <span>R${total.toFixed(2)}</span></div>
       </div>
 
-      ${inv.bank_details ? `
-        <div class="bank-details">
-          <strong>Bank Transfer Details:</strong><br>
-          ${escapeHTML(inv.bank_details).replace(/\n/g, '<br>')}
-        </div>
-      ` : ''}
-      
+      <div class="payment-section">
+        ${inv.bank_details ? `
+          <div class="bank-details">
+            <strong style="color: #1a1a1a; font-size: 14px;">Bank Transfer Details</strong><br>
+            ${escapeHTML(inv.bank_details).replace(/\n/g, '<br>')}
+          </div>
+        ` : '<div></div>'}
+        
+        ${inv.status === 'paid' 
+          ? '' 
+          : (inv.payment_link ? `<a href="${inv.payment_link}" class="pay-btn">Pay R${total.toFixed(2)} Now</a>` : '')
+        }
+      </div>
+
       ${inv.status === 'paid' 
-        ? '<div style="text-align:center"><div class="paid-stamp">PAID</div></div>' 
-        : (inv.payment_link ? `<a href="${inv.payment_link}" class="pay-btn">Pay Now (Card)</a>` : '')
+        ? '<div class="paid-container"><div class="paid-stamp">PAID</div></div>' 
+        : ''
       }
+
     </div>
   </body></html>`);
 });
