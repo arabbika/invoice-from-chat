@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Arabbika Invoices</title>
   
-  <!-- Premium Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,106 +14,127 @@
 <body>
   <main>
     <header>
-      <h1>⚡ Arabbika Invoices</h1>
-      <p>Paste a conversation. Get a payable invoice in 30 seconds.</p>
+      <h1>⚡ Arabbika</h1>
+      <p>Draft invoices and catch scope creep in seconds.</p>
+      
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('invoice')">Full Invoice</button>
+        <button class="tab-btn" onclick="switchTab('quickpay')">Quick-Add Payment</button>
+      </div>
     </header>
 
-    <!-- Business Settings -->
-    <div class="settings-box">
-      <h3>⚙️ Business Settings (Saved Locally)</h3>
-      <div class="settings-grid">
-        <input type="text" id="biz-name" placeholder="Business Name" oninput="saveSettings()">
-        <input type="email" id="biz-email" placeholder="Business Email" oninput="saveSettings()">
-        <input type="text" id="biz-logo" placeholder="Logo URL (Optional)" oninput="saveSettings()">
-        <input type="text" id="bank-details" placeholder="Bank Details (e.g., FNB, Acc: 123, Branch: 456)" oninput="saveSettings()">
-      </div>
-    </div>
-
-    <!-- Input Section -->
-    <section id="input-section">
-      <textarea id="chat" placeholder="Paste your WhatsApp, Slack, or email conversation here...
-
-Example:
-Client: Hey, I need the landing page redesign by Friday.
-Me: Sure — R450 for design, R150 for copy.
-Client: Deal. Send the invoice to john@acme.com"></textarea>
+    <!-- TAB 1: INVOICE -->
+    <section id="invoice-tab" class="tab-content" style="display: block;">
       
-      <div class="input-actions">
-        <button onclick="loadSample()" class="btn-secondary">✨ Try Sample Chat</button>
-        <button id="generate-btn" class="btn-primary">Generate Invoice</button>
+      <div class="settings-box">
+        <h3>⚙️ Business Settings (Saved Locally)</h3>
+        <div class="settings-grid">
+          <input type="text" id="biz-name" placeholder="Business Name" oninput="saveSettings()">
+          <input type="email" id="biz-email" placeholder="Business Email" oninput="saveSettings()">
+          <input type="text" id="biz-logo" placeholder="Logo URL (Optional)" oninput="saveSettings()">
+          <input type="text" id="bank-details" placeholder="Bank Details (e.g., FNB, Acc: 123)" oninput="saveSettings()">
+        </div>
       </div>
-      <div id="error" class="error"></div>
-    </section>
 
-    <!-- Result Section (The Editable Preview) -->
-    <section id="result-section" style="display: none;">
-      
-      <div class="section-header">
-        <h2>Review Invoice</h2>
-        <span class="status-badge">Draft</span>
-      </div>
-      
-      <div class="invoice-card">
+      <section id="input-section">
+        <textarea id="chat" placeholder="Paste your WhatsApp, Slack, or email conversation here..."></textarea>
         
-        <!-- Client Details -->
-        <div class="settings-grid" style="margin-bottom: 24px;">
-          <div>
-            <label class="field-label">Billed To (Client Name)</label>
-            <input type="text" id="edit-client-name" class="field-input" style="font-weight: 600;">
+        <div class="input-actions">
+          <button onclick="loadSample()" class="btn-secondary">✨ Try Sample Chat</button>
+          <button id="generate-btn" class="btn-primary">Generate Invoice</button>
+        </div>
+        <div id="error" class="error"></div>
+      </section>
+
+      <section id="result-section" style="display: none;">
+        <div class="section-header">
+          <h2>Review Invoice</h2>
+          <span class="status-badge">Draft</span>
+        </div>
+        
+        <div class="invoice-card">
+          <div class="settings-grid" style="margin-bottom: 24px;">
+            <div>
+              <label class="field-label">Billed To (Client Name)</label>
+              <input type="text" id="edit-client-name" class="field-input" style="font-weight: 600;">
+            </div>
+            <div>
+              <label class="field-label">Client Email</label>
+              <input type="email" id="edit-client-email" class="field-input">
+            </div>
           </div>
-          <div>
-            <label class="field-label">Client Email</label>
-            <input type="email" id="edit-client-email" class="field-input">
+
+          <h3 class="field-label" style="margin-bottom: 12px; font-size: 14px; color: var(--text);">Line Items</h3>
+          <div id="edit-items-container" class="items-container"></div>
+          <button onclick="addItem()" class="btn-secondary" style="padding: 8px 16px; font-size: 13px; margin-bottom: 24px;">+ Add Item</button>
+
+          <div class="totals-area">
+            <div class="totals-row">
+              <span>Subtotal:</span>
+              <span>R<span id="edit-subtotal">0.00</span></span>
+            </div>
+            <div id="vat-display" class="totals-row" style="display: none;">
+              <span>VAT (15%):</span>
+              <span>R<span id="edit-vat-amount">0.00</span></span>
+            </div>
+            <div class="totals-row final">
+              <span>Total:</span>
+              <span>R<span id="edit-total">0.00</span></span>
+            </div>
+          </div>
+
+          <div class="settings-grid" style="margin-top: 32px; border-top: 1px solid var(--border); padding-top: 24px;">
+            <div>
+              <label class="field-label">Due Date (Days)</label>
+              <input type="number" id="edit-due-days" value="14" min="0" class="field-input">
+            </div>
+            <div>
+              <label class="field-label">Apply VAT</label>
+              <select id="edit-vat" class="field-input">
+                <option value="0">No VAT</option>
+                <option value="15">Add 15% VAT</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <!-- Line Items -->
-        <h3 class="field-label" style="margin-bottom: 12px; font-size: 14px; color: var(--text);">Line Items</h3>
-        <div id="edit-items-container" class="items-container"></div>
-        <button onclick="addItem()" class="btn-secondary" style="padding: 8px 16px; font-size: 13px; margin-bottom: 24px;">+ Add Item</button>
-
-        <!-- Totals -->
-        <div class="totals-area">
-          <div class="totals-row">
-            <span>Subtotal:</span>
-            <span>R<span id="edit-subtotal">0.00</span></span>
-          </div>
-          <div id="vat-display" class="totals-row" style="display: none;">
-            <span>VAT (15%):</span>
-            <span>R<span id="edit-vat-amount">0.00</span></span>
-          </div>
-          <div class="totals-row final">
-            <span>Total:</span>
-            <span>R<span id="edit-total">0.00</span></span>
-          </div>
+        <div class="actions">
+          <button id="save-and-link-btn" class="btn-primary" style="flex: 1;">Save & Create Payment Link</button>
+          <a id="view-invoice-btn" target="_blank" class="btn-secondary">View Public Page →</a>
         </div>
-
-        <!-- Advanced Settings (Due Date & VAT) -->
-        <div class="settings-grid" style="margin-top: 32px; border-top: 1px solid var(--border); padding-top: 24px;">
-          <div>
-            <label class="field-label">Due Date (Days)</label>
-            <input type="number" id="edit-due-days" value="14" min="0" class="field-input">
-          </div>
-          <div>
-            <label class="field-label">Apply VAT</label>
-            <select id="edit-vat" class="field-input">
-              <option value="0">No VAT</option>
-              <option value="15">Add 15% VAT</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="actions">
-        <button id="save-and-link-btn" class="btn-primary" style="flex: 1;">Save & Create Payment Link</button>
-        <a id="view-invoice-btn" target="_blank" class="btn-secondary">View Public Page →</a>
-      </div>
-      
-      <div id="payment-result"></div>
+        
+        <div id="payment-result"></div>
+      </section>
     </section>
+
+    <!-- TAB 2: QUICK PAY -->
+    <section id="quickpay-tab" class="tab-content" style="display: none;">
+      <div class="settings-box" style="border-color: #635bff;">
+        <h3>⚡ Quick-Add Micro-Transaction</h3>
+        <p style="font-size: 14px; color: var(--muted); margin-bottom: 20px;">Client asked for a "quick tweak"? Charge for it instantly without the awkward conversation.</p>
+        
+        <div class="settings-grid" style="grid-template-columns: 1fr;">
+          <input type="text" id="qp-task" placeholder="Task (e.g., Logo adjustment)">
+          <input type="number" id="qp-amount" placeholder="Amount (ZAR)">
+          <input type="text" id="qp-message" placeholder="Paste what the client said here (optional)">
+        </div>
+        
+        <button id="qp-generate-btn" class="btn-primary" style="margin-top: 24px; width: 100%; background: #635bff;">Generate Quick-Pay Link</button>
+        <div id="qp-error" class="error"></div>
+      </div>
+
+      <div id="qp-result" class="settings-box" style="display: none;">
+        <h3>Ready to send!</h3>
+        <textarea id="qp-output-msg" class="field-input" readonly style="height: 100px; margin-bottom: 16px; background: #f9fafb; color: #1a1a1a;"></textarea>
+        <div class="actions">
+          <a id="qp-payment-link" href="#" target="_blank" class="btn-primary" style="flex: 1;">Open Payment Link</a>
+          <button onclick="copyQuickPayMessage()" class="btn-secondary">Copy Message</button>
+        </div>
+      </div>
+    </section>
+
   </main>
-  
   <script src="app.js"></script>
 </body>
 </html>
