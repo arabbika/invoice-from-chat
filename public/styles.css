@@ -1,140 +1,27 @@
-:root {
-  --bg: #0a0a0a;
-  --surface: #171717;
-  --surface-hover: #262626;
-  --text: #f5f5f5;
-  --muted: #a3a3a3;
-  --primary: #635bff;
-  --primary-hover: #4f46e5;
-  --border: #333333;
-  --success-bg: rgba(16, 185, 129, 0.1);
-  --success-text: #34d399;
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg); 
-  color: var(--text); 
-  padding: 40px 20px; 
-  line-height: 1.5;
+.tab-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
-
-main { max-width: 680px; margin: 0 auto; }
-
-/* Header */
-header { text-align: center; margin-bottom: 40px; }
-h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
-header p { color: var(--muted); font-size: 15px; }
-
-/* Settings Box */
-.settings-box { 
-  background: var(--surface); 
-  padding: 24px; 
-  border-radius: 16px; 
-  margin-bottom: 24px; 
-  border: 1px solid var(--border); 
+.tab-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }
-.settings-box h3 { margin: 0 0 16px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
-.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.settings-grid input { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: #000; color: white; }
-.settings-grid input:focus { outline: none; border-color: var(--primary); }
-
-/* Chat Input Section */
-textarea { 
-  width: 100%; 
-  min-height: 160px; 
-  padding: 16px; 
-  border: 1px solid var(--border); 
-  border-radius: 12px; 
-  font-family: inherit; 
-  font-size: 15px; 
-  resize: vertical; 
-  background: #000; 
-  color: white; 
-}
-textarea:focus { outline: none; border-color: var(--primary); }
-
-/* Buttons */
-.btn-primary { 
-  background: var(--primary); 
-  color: white; 
-  border: none; 
-  padding: 14px 24px; 
-  border-radius: 10px; 
-  font-size: 15px; 
-  font-weight: 600; 
-  cursor: pointer; 
-  transition: background 0.2s; 
-  text-decoration: none; 
-  text-align: center; 
-  display: inline-block; 
-}
-.btn-primary:hover { background: var(--primary-hover); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-secondary { 
-  background: transparent; 
-  color: var(--text); 
-  border: 1px solid var(--border); 
-  padding: 14px 24px; 
-  border-radius: 10px; 
-  font-size: 15px; 
-  font-weight: 600; 
-  cursor: pointer; 
-  text-decoration: none; 
-  display: inline-block; 
-}
-.btn-secondary:hover { background: var(--surface-hover); }
-
-/* Result Section */
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.section-header h2 { font-size: 24px; font-weight: 800; }
-.status-badge { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface-hover); padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }
-
-/* The White Invoice Card */
-.invoice-card { 
-  background: white; 
-  color: #1a1a1a; 
-  padding: 32px; 
-  border-radius: 16px; 
-  margin-bottom: 24px; 
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
-}
-.invoice-card h3 { font-size: 14px; color: #111827; font-weight: 700; margin-bottom: 12px; }
-
-.field-label { font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
-.field-input { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-family: inherit; font-size: 15px; background: #f9fafb; color: #1a1a1a; }
-.field-input:focus { outline: none; border-color: var(--primary); background: white; }
-
-/* Dynamic Line Items */
-.items-container { margin-bottom: 16px; }
-.item-row { display: grid; grid-template-columns: 2fr 80px 100px 40px; gap: 12px; margin-bottom: 12px; align-items: center; }
-.item-row input { width: 100%; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; font-family: inherit; font-size: 14px; background: #f9fafb; color: #1a1a1a; }
-.item-row input:focus { outline: none; border-color: var(--primary); background: white; }
-.item-row .delete-btn { background: #fee2e2; color: #dc2626; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-.item-row .delete-btn:hover { background: #fca5a5; }
-
-/* Totals */
-.totals-area { margin-top: 32px; border-top: 2px solid #e5e7eb; padding-top: 20px; }
-.totals-row { display: flex; justify-content: space-between; color: #6b7280; font-size: 15px; margin-bottom: 8px; }
-.totals-row.final { font-size: 28px; font-weight: 800; color: #1a1a1a; margin-top: 12px; letter-spacing: -0.5px; }
-
-/* Actions & Errors */
-.actions { display: flex; gap: 16px; align-items: center; margin-top: 24px; }
-.error { color: #ef4444; font-size: 14px; margin-top: 12px; font-weight: 500; }
-
-/* Success Box */
-.success-box { margin-top: 24px; padding: 20px; background: var(--success-bg); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 12px; color: var(--success-text); font-weight: 500; }
-.success-box a { color: var(--success-text); font-weight: 700; display: block; margin-top: 8px; word-break: break-all; }
-.action-buttons { display: flex; gap: 12px; margin-top: 16px; }
-.btn-whatsapp { background: #25D366; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
-.btn-whatsapp:hover { background: #20bd5a; }
-
-@media (max-width: 600px) {
-  .settings-grid { grid-template-columns: 1fr; }
-  .item-row { grid-template-columns: 1fr 60px 80px 40px; gap: 8px; }
-  .actions { flex-direction: column; }
-  .actions button, .actions a { width: 100%; }
+.tab-btn:hover:not(.active) {
+  background: var(--surface-hover);
+  color: var(--text);
 }
