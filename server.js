@@ -63,7 +63,6 @@ Rules:
       console.log("Could not fetch count, defaulting to INV-001");
     }
 
-    // Insert into Database with safe fallbacks
     const { data, error } = await supabase
       .from('invoices')
       .insert([{
@@ -85,7 +84,7 @@ Rules:
   }
 });
 
-// 2. Update Invoice (Includes VAT, Due Dates, Bank Details)
+// 2. Update Invoice
 app.put('/api/invoice/:id', async (req, res) => {
   try {
     const { 
@@ -186,98 +185,109 @@ app.get('/api/view/:id', async (req, res) => {
   <title>Invoice ${inv.invoice_number || ''} | ${escapeHTML(inv.business_name || 'Arabbika')}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; background: #f4f5f7; margin: 0; padding: 40px 20px; color: #1a1a1a; }
-    .container { max-width: 800px; margin: 0 auto; background: white; padding: 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    body { font-family: 'Inter', sans-serif; background: #e5e7eb; margin: 0; padding: 40px 20px; color: #1a1a1a; }
+    .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1); overflow: hidden; }
     
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 50px; }
-    .biz-name { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin: 0; }
-    .biz-email { color: #6b7280; font-size: 14px; margin-top: 4px; }
-    .meta { text-align: right; }
-    .meta h1 { font-size: 32px; font-weight: 800; color: #635bff; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
-    .meta p { margin: 4px 0; color: #6b7280; font-size: 14px; }
-    .meta strong { color: #1a1a1a; }
+    /* Top Gradient Bar */
+    .invoice-top-bar { height: 12px; background: linear-gradient(90deg, #635bff 0%, #a855f7 100%); }
+    .invoice-content { padding: 50px; }
 
-    .bill-to { margin-bottom: 40px; }
-    .label { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
-    .client-name { font-size: 18px; font-weight: 600; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 50px; }
+    .biz-name { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin: 0; color: #111827; }
+    .biz-email { color: #6b7280; font-size: 14px; margin-top: 4px; }
+    
+    .meta { text-align: right; background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; }
+    .meta h1 { font-size: 24px; font-weight: 800; color: #635bff; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 2px; }
+    .meta p { margin: 4px 0; color: #6b7280; font-size: 13px; }
+    .meta strong { color: #111827; }
+
+    .bill-to { margin-bottom: 40px; padding: 20px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; }
+    .label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+    .client-name { font-size: 18px; font-weight: 600; color: #111827; }
     .client-email { color: #6b7280; font-size: 14px; }
 
-    table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-    th { text-align: left; padding: 12px 16px; background: #f9fafb; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #e5e7eb; }
-    td { padding: 16px; border-bottom: 1px solid #e5e7eb; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+    th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 16px; border-bottom: 1px solid #e5e7eb; font-size: 15px; color: #374151; }
     .num { text-align: right; }
     
-    .totals { width: 300px; margin-left: auto; }
+    .totals-wrapper { display: flex; justify-content: flex-end; }
+    .totals { width: 300px; }
     .totals-row { display: flex; justify-content: space-between; padding: 8px 0; color: #6b7280; font-size: 15px; }
-    .totals-row.final { border-top: 2px solid #1a1a1a; margin-top: 12px; padding-top: 16px; font-size: 24px; font-weight: 800; color: #1a1a1a; }
+    .totals-row.final { background: #635bff; color: white; padding: 20px; border-radius: 12px; font-size: 24px; font-weight: 800; margin-top: 12px; box-shadow: 0 10px 20px -5px rgba(99, 91, 255, 0.4); }
 
-    .payment-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-    .bank-details { font-size: 13px; color: #6b7280; background: #f9fafb; padding: 20px; border-radius: 12px; max-width: 400px; line-height: 1.6; }
+    .payment-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+    .bank-details { font-size: 13px; color: #4b5563; background: #f9fafb; padding: 20px; border-radius: 12px; max-width: 400px; line-height: 1.6; border: 1px dashed #cbd5e1; }
     
-    .pay-btn { display: block; text-align: center; background: #635bff; color: white; padding: 18px 40px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 18px; transition: background 0.2s; }
-    .pay-btn:hover { background: #4f46e5; }
+    .pay-btn { display: block; text-align: center; background: #10b981; color: white; padding: 20px 40px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 18px; transition: background 0.2s; box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4); }
+    .pay-btn:hover { background: #059669; }
     
-    .paid-stamp { color: #16a34a; border: 3px solid #16a34a; padding: 12px 24px; border-radius: 12px; font-weight: 800; display: inline-block; transform: rotate(-5deg); font-size: 28px; letter-spacing: 2px; }
+    .paid-stamp { color: #10b981; border: 3px solid #10b981; padding: 12px 24px; border-radius: 12px; font-weight: 800; display: inline-block; transform: rotate(-5deg); font-size: 28px; letter-spacing: 2px; }
     .paid-container { text-align: center; margin-top: 40px; }
 
     @media print { 
       body { background: white; padding: 0; } 
-      .container { box-shadow: none; padding: 0; } 
+      .container { box-shadow: none; } 
       .pay-btn, .payment-section { display: none; } 
     }
   </style></head><body>
     <div class="container">
-      
-      <div class="header">
-        <div>
-          ${inv.business_logo ? `<img src="${escapeHTML(inv.business_logo)}" style="height: 60px; margin-bottom: 16px; display: block;">` : ''}
-          <h1 class="biz-name">${escapeHTML(inv.business_name || 'Your Business')}</h1>
-          <div class="biz-email">${escapeHTML(inv.business_email || '')}</div>
-        </div>
-        <div class="meta">
-          <h1>Invoice</h1>
-          <p><strong>#${inv.invoice_number || 'DRAFT'}</strong></p>
-          <p>Issued: ${new Date(inv.created_at).toLocaleDateString()}</p>
-          <p>Due: <strong>${dueDate}</strong></p>
-        </div>
-      </div>
-
-      <div class="bill-to">
-        <span class="label">Billed To</span>
-        <div class="client-name">${escapeHTML(inv.client_name)}</div>
-        <div class="client-email">${escapeHTML(inv.client_email)}</div>
-      </div>
-
-      <table>
-        <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      
-      <div class="totals">
-        <div class="totals-row"><span>Subtotal</span> <span>R${inv.subtotal.toFixed(2)}</span></div>
-        ${vat > 0 ? `<div class="totals-row"><span>VAT (15%)</span> <span>R${vat.toFixed(2)}</span></div>` : ''}
-        <div class="totals-row final"><span>Total</span> <span>R${total.toFixed(2)}</span></div>
-      </div>
-
-      <div class="payment-section">
-        ${inv.bank_details ? `
-          <div class="bank-details">
-            <strong style="color: #1a1a1a; font-size: 14px;">Bank Transfer Details</strong><br>
-            ${escapeHTML(inv.bank_details).replace(/\n/g, '<br>')}
-          </div>
-        ` : '<div></div>'}
+      <div class="invoice-top-bar"></div>
+      <div class="invoice-content">
         
+        <div class="header">
+          <div>
+            ${inv.business_logo ? `<img src="${escapeHTML(inv.business_logo)}" style="height: 60px; margin-bottom: 16px; display: block;">` : ''}
+            <h1 class="biz-name">${escapeHTML(inv.business_name || 'Your Business')}</h1>
+            <div class="biz-email">${escapeHTML(inv.business_email || '')}</div>
+          </div>
+          <div class="meta">
+            <h1>Invoice</h1>
+            <p><strong>#${inv.invoice_number || 'DRAFT'}</strong></p>
+            <p>Issued: ${new Date(inv.created_at).toLocaleDateString()}</p>
+            <p>Due: <strong>${dueDate}</strong></p>
+          </div>
+        </div>
+
+        <div class="bill-to">
+          <span class="label">Billed To</span>
+          <div class="client-name">${escapeHTML(inv.client_name)}</div>
+          <div class="client-email">${escapeHTML(inv.client_email)}</div>
+        </div>
+
+        <table>
+          <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        
+        <div class="totals-wrapper">
+          <div class="totals">
+            <div class="totals-row"><span>Subtotal</span> <span>R${inv.subtotal.toFixed(2)}</span></div>
+            ${vat > 0 ? `<div class="totals-row"><span>VAT (15%)</span> <span>R${vat.toFixed(2)}</span></div>` : ''}
+            <div class="totals-row final"><span>Total</span> <span>R${total.toFixed(2)}</span></div>
+          </div>
+        </div>
+
+        <div class="payment-section">
+          ${inv.bank_details ? `
+            <div class="bank-details">
+              <strong style="color: #1a1a1a; font-size: 14px;">Bank Transfer Details</strong><br>
+              ${escapeHTML(inv.bank_details).replace(/\n/g, '<br>')}
+            </div>
+          ` : '<div></div>'}
+          
+          ${inv.status === 'paid' 
+            ? '' 
+            : (inv.payment_link ? `<a href="${inv.payment_link}" class="pay-btn">Pay R${total.toFixed(2)} Now</a>` : '')
+          }
+        </div>
+
         ${inv.status === 'paid' 
-          ? '' 
-          : (inv.payment_link ? `<a href="${inv.payment_link}" class="pay-btn">Pay R${total.toFixed(2)} Now</a>` : '')
+          ? '<div class="paid-container"><div class="paid-stamp">PAID</div></div>' 
+          : ''
         }
+
       </div>
-
-      ${inv.status === 'paid' 
-        ? '<div class="paid-container"><div class="paid-stamp">PAID</div></div>' 
-        : ''
-      }
-
     </div>
   </body></html>`);
 });
