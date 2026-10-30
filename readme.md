@@ -2,7 +2,7 @@
 
 **A B2B micro-SaaS that turns messy WhatsApp/Email conversations into professional, Paystack-ready invoices in seconds.**
 
-[Live Demo](https://invoice-from-chat.onrender.com/) | [Portfolio](https://portfolio.ashanar-elance.workers.dev/)
+[Live Demo](https://invoice-from-chat.onrender.com/)
 
 ## 📖 Overview
 
