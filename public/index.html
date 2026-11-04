@@ -4,20 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Arabbika Invoices</title>
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="ambient-glow"></div>
   <main>
     <header>
       <h1>⚡ Arabbika</h1>
       <p>Draft invoices and catch scope creep in seconds.</p>
       
-      <!-- TABS -->
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('invoice')">Full Invoice</button>
         <button class="tab-btn" onclick="switchTab('quickpay')">Quick-Add Payment</button>
@@ -26,7 +24,6 @@
 
     <!-- TAB 1: INVOICE -->
     <section id="invoice-tab" class="tab-content" style="display: block;">
-      
       <div class="settings-box">
         <h3>⚙️ Business Settings (Saved Locally)</h3>
         <div class="settings-grid">
@@ -39,7 +36,6 @@
 
       <section id="input-section">
         <textarea id="chat" placeholder="Paste your WhatsApp, Slack, or email conversation here..."></textarea>
-        
         <div class="input-actions">
           <button onclick="loadSample()" class="btn-secondary">✨ Try Sample Chat</button>
           <button id="generate-btn" class="btn-primary">Generate Invoice</button>
@@ -103,7 +99,6 @@
           <button id="save-and-link-btn" class="btn-primary" style="flex: 1;">Save & Create Payment Link</button>
           <a id="view-invoice-btn" target="_blank" class="btn-secondary">View Public Page →</a>
         </div>
-        
         <div id="payment-result"></div>
       </section>
     </section>
@@ -133,8 +128,13 @@
         </div>
       </div>
     </section>
-
   </main>
+
+  <!-- Toast Container -->
+  <div id="toast-container">
+    <span style="color: #635bff; font-weight: bold;">✓</span> <span id="toast-message">Copied!</span>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
