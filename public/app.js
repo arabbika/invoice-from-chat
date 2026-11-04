@@ -2,9 +2,15 @@ let currentInvoiceId = null;
 
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  
   document.getElementById(tabId + '-tab').style.display = 'block';
-  event.target.classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  // Update top bar title
+  const title = document.getElementById('page-title');
+  if (tabId === 'invoice') title.textContent = 'Draft Invoice';
+  if (tabId === 'quickpay') title.textContent = 'Quick-Pay Link';
 }
 
 function showToast(message) {
@@ -37,14 +43,10 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
   const errorEl = document.getElementById('error');
   errorEl.textContent = '';
   
-  if (chat.length < 20) { 
-    errorEl.textContent = 'Paste a longer conversation.'; 
-    return; 
-  }
+  if (chat.length < 20) { errorEl.textContent = 'Paste a longer conversation.'; return; }
 
   const btn = document.getElementById('generate-btn');
-  btn.disabled = true; 
-  btn.textContent = 'AI is reading...';
+  btn.disabled = true; btn.textContent = 'AI is reading...';
 
   try {
     const res = await fetch('/api/parse', {
@@ -52,22 +54,20 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat })
     });
-    
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to parse');
 
     currentInvoiceId = data.invoiceId;
     populateEditablePreview(data.invoice);
     
-    document.getElementById('input-section').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'none';
     document.getElementById('result-section').style.display = 'block';
     showToast('Invoice generated!');
     
   } catch (err) {
     errorEl.textContent = err.message;
   } finally {
-    btn.disabled = false; 
-    btn.textContent = 'Generate Invoice';
+    btn.disabled = false; btn.textContent = 'Generate Invoice';
   }
 });
 
@@ -149,7 +149,7 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
   };
 
   const btn = document.getElementById('save-and-link-btn');
-  btn.disabled = true; btn.textContent = 'Saving & creating link...';
+  btn.disabled = true; btn.textContent = 'Saving...';
 
   try {
     await fetch(`/api/invoice/${currentInvoiceId}`, {
@@ -163,11 +163,11 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
     if (!linkRes.ok) throw new Error(linkData.error);
 
     document.getElementById('payment-result').innerHTML = `
-      <div class="success-box">
-        ✅ Invoice saved and payment link ready!
-        <div class="action-buttons">
-          <a href="${linkData.paymentLink}" target="_blank" class="btn-primary" style="padding: 10px 16px; font-size: 14px;">Pay Link</a>
-          <button onclick="sendWhatsApp('${linkData.paymentLink}')" class="btn-whatsapp">Send on WhatsApp</button>
+      <div style="margin-top: 16px; padding: 16px; background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 8px; color: #34d399; font-size: 14px;">
+        Invoice saved and link ready!
+        <div style="margin-top: 12px; display: flex; gap: 12px;">
+          <a href="${linkData.paymentLink}" target="_blank" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">Pay Link</a>
+          <button onclick="sendWhatsApp('${linkData.paymentLink}')" class="btn-whatsapp" style="padding: 8px 16px; font-size: 13px;">Send on WhatsApp</button>
         </div>
       </div>`;
     document.getElementById('view-invoice-btn').href = `/api/view/${currentInvoiceId}`;
@@ -175,7 +175,7 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
   } catch (err) {
     showToast(err.message);
   } finally {
-    btn.disabled = false; btn.textContent = 'Save & Create Payment Link';
+    btn.disabled = false; btn.textContent = 'Save & Create Link';
   }
 });
 
@@ -206,6 +206,8 @@ document.getElementById('qp-generate-btn').addEventListener('click', async () =>
     const finalMessage = `${data.politeMessage}\n\nPay here: ${data.paymentLink}`;
     document.getElementById('qp-output-msg').value = finalMessage;
     document.getElementById('qp-payment-link').href = data.paymentLink;
+    
+    document.getElementById('qp-empty-state').style.display = 'none';
     resultDiv.style.display = 'block';
     showToast('Quick-Pay link generated!');
   } catch (err) {
