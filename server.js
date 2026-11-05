@@ -3,6 +3,7 @@ const express = require('express');
 const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const ws = require('ws'); // Fix for Node.js 20 WebSocket issue
 
 const app = express();
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
@@ -14,7 +15,16 @@ const openai = new OpenAI({
   baseURL: "https://api.x.ai/v1" 
 });
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+// Initialize Supabase with the ws transport fix
+const supabase = createClient(
+  process.env.SUPABASE_URL, 
+  process.env.SUPABASE_KEY,
+  {
+    realtime: {
+      transport: ws
+    }
+  }
+);
 
 // 1. Parse Chat
 app.post('/api/parse', async (req, res) => {
@@ -83,7 +93,7 @@ Rules:
   }
 });
 
-// 2. Update Invoice (VAT, Due Dates, Bank Details)
+// 2. Update Invoice
 app.put('/api/invoice/:id', async (req, res) => {
   try {
     const { 
@@ -155,7 +165,6 @@ app.post('/api/quickpay', async (req, res) => {
       return res.status(400).json({ error: 'Task and amount are required.' });
     }
 
-    // Generate the polite message using xAI
     const completion = await openai.chat.completions.create({
       model: 'grok-3',
       messages: [
@@ -178,7 +187,7 @@ app.post('/api/quickpay', async (req, res) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        email: 'client@example.com', // Default for quick links
+        email: 'client@example.com',
         amount: Math.round(amount * 100),
         currency: 'ZAR',
         callback_url: `${process.env.BASE_URL}/success.html`,
