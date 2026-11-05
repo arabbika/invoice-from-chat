@@ -46,10 +46,11 @@ Return ONLY valid JSON matching this exact structure:
   "notes": "string"
 }
 Rules:
+- Look for the client's name. If they say "Send it to John", the name is "John". If they provide an email like "john@acme.com", infer the name is "John".
+- If no name is found, use "Valued Client".
 - If email not found, use null.
 - If quantity not specified, use 1.
-- Rate must be a plain number (no currency symbols, no commas).
-- If the conversation mentions a total but no line items, create one item named after the work described.
+- Rate must be a plain number.
 - Default currency is ZAR.`
         },
         { role: 'user', content: `Extract invoice details:\n\n${chat}` }
@@ -76,7 +77,7 @@ Rules:
       .from('invoices')
       .insert([{
         invoice_number,
-        client_name: parsed.client?.name || 'Unknown Client', 
+        client_name: parsed.client?.name || 'Valued Client', 
         client_email: parsed.client?.email || 'no-email@example.com',
         items: parsed.items,
         subtotal: subtotal,
