@@ -1,16 +1,11 @@
 let currentInvoiceId = null;
 
-function switchTab(tabId) {
+function switchTab(tabId, event) {
   document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   
   document.getElementById(tabId + '-tab').style.display = 'block';
-  event.currentTarget.classList.add('active');
-
-  // Update top bar title
-  const title = document.getElementById('page-title');
-  if (tabId === 'invoice') title.textContent = 'Draft Invoice';
-  if (tabId === 'quickpay') title.textContent = 'Quick-Pay Link';
+  if (event) event.target.classList.add('active');
 }
 
 function showToast(message) {
@@ -60,7 +55,7 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     currentInvoiceId = data.invoiceId;
     populateEditablePreview(data.invoice);
     
-    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('input-section').style.display = 'none';
     document.getElementById('result-section').style.display = 'block';
     showToast('Invoice generated!');
     
@@ -163,11 +158,11 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
     if (!linkRes.ok) throw new Error(linkData.error);
 
     document.getElementById('payment-result').innerHTML = `
-      <div style="margin-top: 16px; padding: 16px; background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 8px; color: #34d399; font-size: 14px;">
-        Invoice saved and link ready!
-        <div style="margin-top: 12px; display: flex; gap: 12px;">
-          <a href="${linkData.paymentLink}" target="_blank" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">Pay Link</a>
-          <button onclick="sendWhatsApp('${linkData.paymentLink}')" class="btn-whatsapp" style="padding: 8px 16px; font-size: 13px;">Send on WhatsApp</button>
+      <div class="success-box">
+        ✅ Invoice saved and payment link ready!
+        <div class="action-buttons">
+          <a href="${linkData.paymentLink}" target="_blank" class="btn-primary" style="padding: 10px 16px; font-size: 14px;">Pay Link</a>
+          <button onclick="sendWhatsApp('${linkData.paymentLink}')" class="btn-whatsapp">Send on WhatsApp</button>
         </div>
       </div>`;
     document.getElementById('view-invoice-btn').href = `/api/view/${currentInvoiceId}`;
@@ -175,7 +170,7 @@ document.getElementById('save-and-link-btn').addEventListener('click', async () 
   } catch (err) {
     showToast(err.message);
   } finally {
-    btn.disabled = false; btn.textContent = 'Save & Create Link';
+    btn.disabled = false; btn.textContent = 'Save & Create Payment Link';
   }
 });
 
@@ -206,8 +201,6 @@ document.getElementById('qp-generate-btn').addEventListener('click', async () =>
     const finalMessage = `${data.politeMessage}\n\nPay here: ${data.paymentLink}`;
     document.getElementById('qp-output-msg').value = finalMessage;
     document.getElementById('qp-payment-link').href = data.paymentLink;
-    
-    document.getElementById('qp-empty-state').style.display = 'none';
     resultDiv.style.display = 'block';
     showToast('Quick-Pay link generated!');
   } catch (err) {
